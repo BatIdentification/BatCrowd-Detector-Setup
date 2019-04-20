@@ -58,11 +58,21 @@ read -r -d '' AUTOHOTSPOT_SERVICE_CONFIG << EOM
 		WantedBy=multi-user.target
 EOM
 
+read -r -d '' APACHE_VIRTUAL_HOST << EOM
+		<VirtualHost *:80>
+		 ServerName http://batcrowd.local
+		 Redirect permanent / https://batcrowd.local
+		</VirtualHost>
+EOM
+
 setup_sudoers () {
 
 	echo "www-data ALL=(ALL) NOPASSWD: /sbin/shutdown" | sudo EDITOR='tee -a' visudo
 	echo "www-data ALL=(ALL) NOPASSWD: /sbin/iw" | sudo EDITOR='tee -a' visudo
 	echo "www-data ALL=(ALL) NOPASSWD: /bin/date" | sudo EDITOR='tee -a' visudo
+	echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/aplay" | sudo EDITOR='tee -a' visudo
+	echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/arecord" | sudo EDITOR='tee -a' visudo
+	echo "www-data ALL=(ALL) NOPASSWD: /usr/bin/pkill" | sudo EDITOR='tee -a' visudo
 
 }
 
@@ -77,8 +87,11 @@ install_packages() {
 
 	sudo apt-get update
 	sudo apt-get upgrade
-	sudo apt-get install git sox apache2 php libapache2-mod-php -y
+	sudo apt-get install git sox apache2 php libapache2-mod-php php7.0-sqlite3 -y
 
+	#Install Composer
+	curl -sS https://getcomposer.org/installer | php
+	sudo mv composer.phar /usr/local/bin/composer
 
 }
 
@@ -154,9 +167,13 @@ install_batcrowd () {
 
 	sudo rm *
 
-	sudo git clone https://github.com/richardbeattie/BatCrowd-Detector.git .
+	sudo -u www-data git clone https://github.com/richardbeattie/BatCrowd-Detector.git .
 
 	create_folders
+
+	composer install
+
+	sudo chown -R www-data database
 
 }
 
@@ -165,6 +182,10 @@ device_configeration () {
 	#Change the hostname
 	sudo sed -i -e 's@raspberrypi@batcrowd@g' /etc/hostname
 	sudo sed -i -e 's@raspberrypi@batcrowd@g' /etc/hosts
+
+	#Add www-data to audio group
+
+	sudo usermod -a -G audio www-data
 
 }
 
@@ -183,6 +204,10 @@ setup_ssl_apache () {
 	sudo sed -i -e 's@/etc/ssl/certs/ssl-cert-snakeoil.pem@/etc/apache2/ssl/server.crt@g' /etc/apache2/sites-enabled/000-default-ssl.conf
 
 	sudo sed -i -e 's@SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key@SSLCertificateKeyFile /etc/apache2/ssl/server.key@g' /etc/apache2/sites-enabled/000-default-ssl.conf
+
+	sudo sed -i -e 's@</VirtualHost>@ServerName http://batcrowd.local@g' /etc/apache2/sites-enabled/000-default.conf
+	sudo sh -c "echo 'Redirect permanent / https://batcrowd.local/' >> /etc/apache2/sites-enabled/000-default.conf"
+	sudo sh -c "echo '</VirtualHost>' >> /etc/apache2/sites-enabled/000-default.conf"
 
 	sudo service apache2 restart
 
