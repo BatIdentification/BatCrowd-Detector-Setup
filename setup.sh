@@ -9,6 +9,10 @@
 #		a) A folder for all the spectrograms
 #		b) A folder for all the time expansion audio
 
+PURPLE='\033[0;35m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
 read -r -d '' HOSTAPD_CONFIG << EOM
 			#2.4GHz setup wifi 80211 b,g,n
 			interface=wlan0
@@ -161,6 +165,28 @@ device_configeration () {
 	#Change the hostname
 	sudo sed -i -e 's@raspberrypi@batcrowd@g' /etc/hostname
 	sudo sed -i -e 's@raspberrypi@batcrowd@g' /etc/hosts
+
+}
+
+setup_ssl_apache () {
+
+	echo -e "${PURPLE}Setting up SSL for the web-interface. Please answer the following questions...."
+
+	sudo mkdir /etc/apache2/ssl
+
+	sudo openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -out /etc/apache2/ssl/server.crt -keyout /etc/apache2/ssl/server.key
+
+	sudo a2enmod ssl
+
+	sudo ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabled/000-default-ssl.conf
+
+	sudo sed -i -e 's@/etc/ssl/certs/ssl-cert-snakeoil.pem@/etc/apache2/ssl/server.crt@g' /etc/apache2/sites-enabled/000-default-ssl.conf
+
+	sudo sed -i -e 's@SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key@SSLCertificateKeyFile /etc/apache2/ssl/server.key@g' /etc/apache2/sites-enabled/000-default-ssl.conf
+
+	sudo service apache2 restart
+
+	echo -e "${PURPLE}Your SSL certificate has been successfully setup"
 
 }
 
