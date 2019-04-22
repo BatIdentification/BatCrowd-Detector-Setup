@@ -83,7 +83,7 @@ create_folders () {
 
 }
 
-install_packages() {
+install_packages () {
 
 	sudo apt-get update
 	sudo apt-get upgrade
@@ -95,7 +95,7 @@ install_packages() {
 
 }
 
-setup_auto_hotspot() {
+setup_auto_hotspot () {
 
 	#Install the libraries
 	sudo apt-get install hostapd dnsmasq -y
