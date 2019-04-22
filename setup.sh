@@ -222,6 +222,8 @@ sudo apt-get -y purge dns-root-data
 
 echo -e "${GREEN}Modifying sudeors file....${NC}"
 
+echo -e "${GREEN}Modifying sudeors file....${NC}"
+
 setup_sudoers
 
 echo -e "${GREEN}Installing the neccessary packages....${NC}"
