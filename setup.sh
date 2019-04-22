@@ -1,3 +1,4 @@
+#!/bin/bash
 #The BatCrowd-Detector setup Script
 #It does the following
 # 1. Edits your sudeors file to allow the webinterface to
@@ -8,6 +9,11 @@
 # 3. Creates the neccessary folders
 #		a) A folder for all the spectrograms
 #		b) A folder for all the time expansion audio
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
 
 PURPLE='\033[0;35m'
 GREEN='\033[0;32m'
@@ -87,7 +93,7 @@ install_packages () {
 
 	sudo apt-get update
 	sudo apt-get upgrade
-	sudo apt-get install git sox apache2 php libapache2-mod-php php7.0-sqlite3 -y
+	sudo apt-get -y install git sox apache2 php libapache2-mod-php php7.0-sqlite3 hostapd dnsmasq
 
 	#Install Composer
 	curl -sS https://getcomposer.org/installer | php
@@ -98,12 +104,11 @@ install_packages () {
 setup_auto_hotspot () {
 
 	#Install the libraries
-	sudo apt-get install hostapd dnsmasq -y
 	sudo systemctl disable hostapd
 	sudo systemctl disable dnsmasq
 
 	#We need to unmask hostapd
-	sudo systemctl unmask hostapd Leislers
+	sudo systemctl unmask hostapd
 
 	#Edit the hostapd.conf file
 	sudo touch /etc/hostapd/hostapd.conf
@@ -165,13 +170,13 @@ install_batcrowd () {
 
 	cd /var/www/html
 
-	sudo rm *
+	sudo rm -rf *
 
 	sudo -u www-data git clone https://github.com/richardbeattie/BatCrowd-Detector.git .
 
 	create_folders
 
-	composer install
+	sudo -u pi composer install
 
 	sudo chown -R www-data database
 
@@ -190,8 +195,6 @@ device_configeration () {
 }
 
 setup_ssl_apache () {
-
-	echo -e "${PURPLE}Setting up SSL for the web-interface. Please answer the following questions...."
 
 	sudo mkdir /etc/apache2/ssl
 
@@ -213,24 +216,38 @@ setup_ssl_apache () {
 
 	sudo service apache2 restart
 
-	echo -e "${PURPLE}Your SSL certificate has been successfully setup"
-
 }
 
-sudo apt-get purge dns-root-data -y
+sudo apt-get -y purge dns-root-data
+
+echo -e "${GREEN}Modifying sudeors file....${NC}"
 
 setup_sudoers
 
+echo -e "${GREEN}Installing the neccessary packages....${NC}"
+
 install_packages
+
+echo -e "${GREEN}Setting up auto hotspot....${NC}"
 
 setup_auto_hotspot
 
+echo -e "${GREEN}Setting up the audio card....${NC}"
+
 setup_audio_card
+
+echo -e "${GREEN}Installing bat crowd software....${NC}"
 
 install_batcrowd
 
+echo -e "${GREEN}Creating the neccessary folders....${NC}"
+
 create_folders
 
+echo -e "${PURPLE}Setting up SSL for the web-interface. Please answer the following questions....${NC}"
+
 setup_ssl_apache
+
+echo -e "${PURPLE}Configering device....${NC}"
 
 device_configeration
