@@ -95,7 +95,7 @@ install_packages() {
 
 }
 
-setup auto_hotspot() {
+setup_auto_hotspot() {
 
 	#Install the libraries
 	sudo apt-get install hostapd dnsmasq -y
@@ -199,6 +199,8 @@ setup_ssl_apache () {
 
 	sudo a2enmod ssl
 
+	sudo service apache2 restart
+
 	sudo ln -s /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-enabled/000-default-ssl.conf
 
 	sudo sed -i -e 's@/etc/ssl/certs/ssl-cert-snakeoil.pem@/etc/apache2/ssl/server.crt@g' /etc/apache2/sites-enabled/000-default-ssl.conf
@@ -221,4 +223,14 @@ setup_sudoers
 
 install_packages
 
+setup_auto_hotspot
+
+setup_audio_card
+
 install_batcrowd
+
+create_folders
+
+setup_ssl_apache
+
+device_configeration
